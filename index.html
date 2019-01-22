@@ -1,0 +1,265 @@
+<!-- vue learning project-->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>VueSearchEngine</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectre.css/0.5.0/spectre.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectre.css/0.5.0/spectre-icons.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container grid-lg" >
+        <div id="app" v-cloak>
+            <div class="container">
+            	<h1 class="text-center">Wyszukiwarka mieszkań</h1>
+            </div>	
+            <div class="container">
+                <div class="columns">
+                    <div class="column col-xs-3">
+                        <div class="form-group">
+                          <select class="form-select" v-model="levelFilter">
+                            <option value="">wybierz piętro</option>
+                            <option v-for="n in levelInterval" :value="n">piętro nr. {{ n }}</option>
+                          </select>
+                        </div>
+                    </div>
+                    <div class="column col-xs-3">
+                        <div class="form-group">
+                          <select class="form-select" v-model="areaFilter" @change="areaparam">
+                            <option value="">powierzchnia</option>
+                            <option data-areamin="0" data-areamax="30" value="30">do 30m2</option>
+                            <option data-areamin="30" data-areamax="40" value="40">30 - 40m2</option>
+                            <option data-areamin="40" data-areamax="50" value="50">40 - 50m2</option>
+                            <option data-areamin="50" data-areamax="1001" value="50">ponad 50m2</option>
+                          </select>
+                        </div>
+                    </div>
+                    <div class="column col-xs-3">
+                        <div class="form-group">
+                          <select class="form-select" v-model="priceFilter" @change="priceparam">
+                            <option value="">cena</option>
+                            <option data-pricemin="0" data-pricemax="300000" value="300000">do 300 tyś. zł.</option>
+                            <option data-pricemin="300000" data-pricemax="400000" value="400000">300 - 400 tyś. zł.</option>
+                            <option data-pricemin="400000" data-pricemax="500000" value="500000">400 - 500 tyś. zł.</option>
+                            <option data-pricemin="500000" data-pricemax="10000000" value="10000000">ponad 500 tyś. zł.</option>
+                          </select>
+                        </div>
+                    </div>  
+                    <div class="column col-xs-3">
+                        <div class="form-group">
+                          <select class="form-select" v-model="roomsFilter">
+                            <option value="">liczba pokoi</option>
+							<option v-for="n in roomInterval" :value="n">{{ n }}</option>
+                          </select>
+                        </div>
+                    </div>                                                                           
+                </div>
+                <br>
+                <div class="columns">
+                    <div class="column col-xs-6">
+						<div class="form-group">
+						  <input class="form-input" type="text" placeholder="wyszukaj ulicę" v-model="query">
+						</div>
+                    </div>
+                    <div class="column col-xs-6">
+                        <div class="form-group">
+                          <select class="form-select" v-model.number="show" @change="paginate">
+                            <option value="5">pokaż 5 pozycji</option>
+                            <option value="10">pokaż 10 pozycji</option>
+                            <option value="20">pokaż 20 pozycji</option>
+                            <option value="10000">pokaż wszystko</option>
+                          </select>
+                        </div>
+                    </div>                    
+                </div>
+                <br>
+                <div class="columns">
+                	<div class="column col-xs-12">
+						<div class="form-group">
+						  <label class="form-checkbox">
+						    <input type="checkbox" v-model="statusFilter">
+						    <i class="form-icon"></i> pokaż tylko dostępne
+						  </label>
+						</div>    
+					</div>            	
+                </div>
+            </div> 
+
+            <transition>
+	            <div v-if="filtered.length">
+		            <table class="table">
+		            	<thead>
+			                <tr class="bg-dark">
+			                    <th @click.prevent="sortDirectionUpdate('id')" title="kliknij aby posortować po id">
+			                    	Nr. 
+			                    	<i v-if="sortBy === 'id'" class="icon" 
+			                    	:class="sortDirection === 'asc' ? 'icon-arrow-up' : 'icon-arrow-down'"></i>
+			                    </th>			                    
+			                    <th @click.prevent="sortDirectionUpdate('street')" title="kliknij aby posortować po ulicy">
+			                    	Ulica 
+			                    	<i v-if="sortBy === 'street'" class="icon" 
+			                    	:class="sortDirection === 'asc' ? 'icon-arrow-up' : 'icon-arrow-down'"></i>
+			                    </th>		                    
+			                    <th @click.prevent="sortDirectionUpdate('level')" title="kliknij aby posortować po piętrze">
+			                    	Piętro 
+			                    	<i v-if="sortBy === 'level'" class="icon" 
+			                    	:class="sortDirection === 'asc' ? 'icon-arrow-up' : 'icon-arrow-down'"></i>
+			                    </th>
+			                    <th @click.prevent="sortDirectionUpdate('area')" title="kliknij aby posortować po powierzchni">
+			                    	Powierzchnia 
+			                    	<i v-if="sortBy === 'area'" class="icon" 
+			                    	:class="sortDirection === 'asc' ? 'icon-arrow-up' : 'icon-arrow-down'"></i>
+			                    </th>		
+			                    <th @click.prevent="sortDirectionUpdate('rooms')" title="kliknij aby posortować po pokojach">
+			                    	Liczba pokoi 
+			                    	<i v-if="sortBy === 'rooms'" class="icon" 
+			                    	:class="sortDirection === 'asc' ? 'icon-arrow-up' : 'icon-arrow-down'"></i>
+			                    </th>
+			                    <th @click.prevent="sortDirectionUpdate('price')" title="kliknij aby posortować po cenie">
+			                    	Cena
+			                    	<i v-if="sortBy === 'price'" class="icon" 
+			                    	:class="sortDirection === 'asc' ? 'icon-arrow-up' : 'icon-arrow-down'"></i>
+			                    </th>	
+			                    <th @click.prevent="sortDirectionUpdate('status')" title="kliknij aby posortować po statusie">
+			                    	Status
+			                    	<i v-if="sortBy === 'status'" class="icon" 
+			                    	:class="sortDirection === 'asc' ? 'icon-arrow-up' : 'icon-arrow-down'"></i>
+			                    </th>
+			                </tr>
+		            	</thead>
+
+			            <tbody is="transition-group" tag="tbody" appear>
+			                <tr v-for="(flat, index) in filtered" :class="{'bg-gray, sold': flat.status === '-1', 'bg-secondary': flat.status === '0', 'bg-success': flat.status === '1'}" :key="index">
+				               	<td>{{ flat.id }}.</td>
+				                <td>{{ flat.street }}</td>
+				                <td>{{ flat.level }}</td>
+				                <td>{{ flat.area }} m2</td>
+				                <td>{{ flat.rooms }}</td>
+				               	<td>{{ flat.price }} zł</td>
+				               	<td>
+				               		<span v-if="flat.status === 1">wolne</span>
+				               		<span v-else-if="flat.status === 0">zarezerwowane</span>
+				               		<span v-else>sprzedane</span>
+				               	</td>      
+				            </tr>     
+				        </tbody>          	
+		            </table>    
+
+					<ul class="pagination" v-show="pages > 1">
+					  <li class="page-item" :class="onpage === n ? 'active' : ''" v-for="n in pages" @click.prevent="onpage = n">
+					    <a href="#">{{ n }}</a>
+					  </li>
+					</ul>
+				</div>
+
+				<h5 v-if="dataLoaded && !filtered.length" class="text-center toast">Brak mieszkań spełniających wybrane kryteria</h5>
+			</transition>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.13/vue.js"></script>
+	<script>
+
+	let vm = new Vue({
+		el: '#app',
+		data: {
+			endpoint: 'https://api.myjson.com/bins/j5ygs',
+			flats: [],	
+            query: "",
+            sortBy: '',
+            sortDirection: '',
+           	isAscending: false,
+           	pages: 1,
+           	onpage: 1,
+           	show: 5,
+           	levelFilter: '',
+           	areaFilter: '',
+           	roomsFilter: '',
+           	priceFilter: '',
+           	priceMin: '',
+           	priceMax: '',
+           	areaMin: '',
+           	areaMax: '',
+           	filteredTemp: [],
+           	statusFilter: false,
+           	dataLoaded: false
+		},
+		computed: {
+			filtered: function(){
+
+				this.filteredTemp = this.flats.filter(
+					flat => 
+					flat.street.toLowerCase().includes(this.query) &&
+					(flat.level == this.levelFilter || this.levelFilter==='') &&
+					((Math.ceil(flat.area) > this.areaMin && Math.ceil(flat.area) <= this.areaMax) || !this.areaFilter) &&
+					(flat.rooms == this.roomsFilter || !this.roomsFilter) &&
+					((flat.price > this.priceMin && flat.price <= this.priceMax) || !this.priceFilter) &&
+					(flat.status == 1 || !this.statusFilter)
+				);
+
+				if(this.sortBy){
+					this.filteredTemp = _.orderBy(this.filteredTemp, [this.sortBy], [this.sortDirection]);
+				}
+
+				this.paginate();
+
+				return this.filteredTemp.slice(this.show * (this.onpage -1),this.show*this.onpage);
+			},
+			levelInterval: function(){
+				let levels = this.flats.map(flat => flat.level);
+				levels = _.uniq(levels);
+				return _.sortBy(levels);
+			},
+			roomInterval: function(){
+				let levels = this.flats.map(flat => flat.rooms);
+				levels = _.uniq(levels);
+				return _.sortBy(levels);
+			}
+		},
+		methods:{
+			paginate: function(){
+				this.pages = Math.ceil(this.filteredTemp.length/this.show)
+			},
+			areaparam: function($event){
+				if($event.target.value){
+					let e = $event.target;
+					this.areaMin = e.options[e.selectedIndex].attributes['data-areamin'].value;
+					this.areaMax = e.options[e.selectedIndex].attributes['data-areamax'].value;				
+				}else{
+					this.areaMin = '';
+					this.areaMax = '';
+				}
+			},
+			priceparam: function($event){
+				if($event.target.value){
+					let e = $event.target;
+					this.priceMin = e.options[e.selectedIndex].attributes['data-pricemin'].value;
+					this.priceMax = e.options[e.selectedIndex].attributes['data-pricemax'].value;
+				}else{
+					this.priceMin = '';
+					this.priceMax = '';
+				}
+			},
+			sortDirectionUpdate: function(item){
+				this.sortBy = item;
+				this.sortDirection = this.sortDirection == 'desc' ? 'asc' : 'desc';
+			}										
+		},
+        created(){
+            axios.get(this.endpoint)
+                .then(res => this.flats = res.data);
+
+            if(this.flats) {
+	       		setTimeout(() => {
+	            	this.dataLoaded = true;
+	          	}, 700);
+            }  
+        }  		
+	});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+        .container {
+            margin-top: 50px;
+            margin-bottom: 50px;
+        }
+
+        [v-cloak] {
+            display: none;
+        }
+
+        .sold {
+            opacity: .4;
+        }
+
+        thead th {
+            cursor: pointer;
+        }
+
+        .pagination {
+            justify-content: center;
+        }
+
+        .pagination button {
+            margin: 0 2px;
+        }
+
+        .v-enter-active,
+        .v-leave-active{
+            transition: opacity .5s;
+        }
+
+        .v-leave-active {
+            position: absolute;
+        }
+
+        .v-move {
+            transition: transform .5s;
+        }
+
+        .v-enter,
+        .v-leave-to {
+            opacity: 0;
+        }
